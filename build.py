@@ -15,6 +15,9 @@ def build(lesson_file: Path) -> Path:
         raise ValueError(f"Missing fields: {', '.join(sorted(missing))}")
     if not lesson["id"] or any(c not in "0123456789-" for c in lesson["id"]):
         raise ValueError("id must be an ISO-like date")
+    for resource in lesson["resources"]:
+        if not isinstance(resource.get("url"), str) or not resource["url"].startswith("https://"):
+            raise ValueError("Resource URLs must use HTTPS")
     ids = set()
     for q in lesson["questions"]:
         if q["id"] in ids or not q["id"].isalnum():
