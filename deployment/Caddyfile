@@ -1,0 +1,15 @@
+92-118-205-5.sslip.io {
+    encode zstd gzip
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Cache-Control no-cache
+    }
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8765
+    }
+    handle {
+        root * /srv/den-z/www
+        file_server
+    }
+}

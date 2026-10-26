@@ -1,0 +1,20 @@
+[Unit]
+Description=Day Z private progress API
+After=network.target
+
+[Service]
+Type=simple
+User=denz
+Group=denz
+WorkingDirectory=/srv/den-z
+ExecStart=/usr/bin/python3 /srv/den-z/backend.py --host 127.0.0.1 --port 8765 --lessons /srv/den-z/lessons --db /var/lib/den-z/progress.sqlite --token-file /var/lib/den-z/token
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/den-z
+
+[Install]
+WantedBy=multi-user.target
