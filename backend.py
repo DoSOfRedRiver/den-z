@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-LESSON_ID = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+LESSON_ID = re.compile(r'^\d{4}-\d{2}-\d{2}(?:-db)?$')
 
 
 def make_server(host: str, port: int, lesson_dir: Path, db_path: Path, token: str):

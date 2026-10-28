@@ -6,6 +6,11 @@ from build import build
 
 
 class BuildSecurityTest(unittest.TestCase):
+    def test_accepts_db_track_id_without_overwriting_main_day(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'db.json'
+            path.write_text(json.dumps({'id': '2026-10-28-db', 'title': 'DB', 'track': 'БД', 'duration': '30', 'objective': 'x', 'sections': [], 'resources': [], 'questions': []}))
+            self.assertIn('2026-10-28-db', build(path).name)
     def test_rejects_non_https_resource_link(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'lesson.json'

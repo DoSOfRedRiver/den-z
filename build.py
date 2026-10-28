@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build a self-contained offline lesson from a reviewed JSON lesson."""
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -13,8 +14,8 @@ def build(lesson_file: Path) -> Path:
     missing = required - lesson.keys()
     if missing:
         raise ValueError(f"Missing fields: {', '.join(sorted(missing))}")
-    if not lesson["id"] or any(c not in "0123456789-" for c in lesson["id"]):
-        raise ValueError("id must be an ISO-like date")
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}(?:-db)?', lesson["id"]):
+        raise ValueError("id must be a date or date-db")
     for resource in lesson["resources"]:
         if not isinstance(resource.get("url"), str) or not resource["url"].startswith("https://"):
             raise ValueError("Resource URLs must use HTTPS")

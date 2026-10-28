@@ -57,6 +57,16 @@ class BackendTest(unittest.TestCase):
             self.assertEqual(self.request(method, path, body)[0], 401)
             self.assertEqual(self.request(method, path, body, 'wrong')[0], 401)
 
+    def test_db_track_submission_uses_distinct_lesson_id(self):
+        (self.root / 'lessons' / '2026-10-26-db.json').write_text(json.dumps({
+            'id': '2026-10-26-db', 'title': 'БД', 'questions': [
+                {'id': 'q1', 'type': 'choice', 'options': ['A', 'B'], 'answer': 0}
+            ]}), encoding='utf-8')
+        status, saved = self.request('POST', '/api/submissions',
+            {'lesson_id': '2026-10-26-db', 'answers': {'q1': '0'}}, 'secret-test')
+        self.assertEqual(status, 201)
+        self.assertEqual(saved['lesson_id'], '2026-10-26-db')
+
     def test_reject_unknown_lesson_and_invalid_answer(self):
         for body in [
             {'lesson_id': '../token', 'answers': {'q1': '1'}},
