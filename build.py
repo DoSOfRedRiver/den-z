@@ -19,6 +19,27 @@ def build(lesson_file: Path) -> Path:
     for resource in lesson["resources"]:
         if not isinstance(resource.get("url"), str) or not resource["url"].startswith("https://"):
             raise ValueError("Resource URLs must use HTTPS")
+    for section in lesson["sections"]:
+        for block in section.get("blocks", []):
+            if block.get("type") != "diagram":
+                continue
+            nodes, edges = block.get("nodes"), block.get("edges")
+            if not isinstance(block.get("caption"), str) or not block["caption"].strip() or not isinstance(nodes, list) or len(nodes) < 2 or not isinstance(edges, list) or not edges:
+                raise ValueError("diagram needs caption, nodes and edges")
+            positions, coordinates = {}, set()
+            for node in nodes:
+                if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"] or node["id"] in positions or not isinstance(node.get("label"), str) or not node["label"].strip():
+                    raise ValueError("diagram node needs unique id and label")
+                x, y = node.get("x"), node.get("y")
+                if type(x) is not int or x not in (-1, 0, 1) or type(y) is not int or y < 0 or (x, y) in coordinates:
+                    raise ValueError("diagram coordinate must be unique grid cell")
+                positions[node["id"]] = y
+                coordinates.add((x, y))
+            for edge in edges:
+                if not isinstance(edge, dict) or edge.get("from") not in positions or edge.get("to") not in positions or positions[edge["from"]] >= positions[edge["to"]]:
+                    raise ValueError("diagram edge must connect existing nodes forward")
+                if "label" in edge and not isinstance(edge["label"], str):
+                    raise ValueError("diagram edge label must be text")
     ids = set()
     for q in lesson["questions"]:
         if q["id"] in ids or not q["id"].isalnum():

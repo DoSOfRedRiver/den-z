@@ -4,7 +4,7 @@ const {JSDOM}=require('jsdom');
 const html=fs.readFileSync('docs/lessons/2026-10-27.html','utf8');
 const dom=new JSDOM(html,{url:'https://study.example/lessons/2026-10-27.html',runScripts:'dangerously',beforeParse(win){win.fetch=async()=>({ok:false,status:401})}});
 const d=dom.window.document;
-assert(d.querySelectorAll('.flow-step').length>=4,'visual flow rendered');
+assert(d.querySelectorAll('.diagram svg path.diagram-edge').length>=4,'connected flows rendered');
 assert(d.querySelectorAll('.reading pre code').length>=2,'snippets in code blocks');
 assert(d.querySelectorAll('.quiz-item').length>=9,'expanded quiz');
 assert.match(d.querySelector('#history-status').textContent,/ссылк|ключ/i);
@@ -12,7 +12,7 @@ assert.match(d.querySelector('#history-section').textContent,/браузер|к�
 assert(!d.querySelector('.reading script'),'lesson body must not inject HTML');
 const currentHtml=fs.readFileSync('docs/lessons/2026-10-29.html','utf8');
 const current=new JSDOM(currentHtml,{url:'https://study.example/lessons/2026-10-29.html',runScripts:'dangerously'}).window.document;
-assert(current.querySelectorAll('.flow-step').length>=12,'current flows rendered as steps');
+assert(current.querySelectorAll('.diagram svg path.diagram-edge').length>=12,'current flows rendered with arrows');
 assert(current.querySelectorAll('.reading pre code[class^="language-"]').length>=2,'current snippets have language');
 assert.equal(current.querySelectorAll('.quiz-item').length,11,'current assessment rendered');
 const title='Кеш показал старую цену: гонка cache-aside после обновления';
