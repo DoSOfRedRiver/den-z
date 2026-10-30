@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import tempfile
 import threading
 import unittest
@@ -7,6 +8,7 @@ import urllib.request
 from pathlib import Path
 
 from backend import make_server
+from review import save_review
 
 
 class BackendTest(unittest.TestCase):
@@ -51,6 +53,29 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(history['submissions'][0]['answers']['q2'], 'Аргумент')
         self.assertEqual(history['submissions'][0]['lesson_id'], '2026-10-26')
+
+    def test_review_is_scored_and_visible_only_to_owner(self):
+        lesson_path = self.root / 'lessons' / '2026-10-26.json'
+        lesson = json.loads(lesson_path.read_text())
+        lesson['questions'][1]['rubric'] = 'Объяснить причину'
+        lesson_path.write_text(json.dumps(lesson))
+        status, saved = self.request('POST', '/api/submissions',
+            {'lesson_id':'2026-10-26','answers':{'q1':'1','q2':'Аргумент'}}, 'secret-test')
+        self.assertEqual(status, 201)
+        review = save_review(self.root / 'progress.sqlite', self.root / 'lessons',
+            saved['id'], {'q2':(3,4)}, 'Не описана граница гарантии.')
+        self.assertEqual(review['overall_percent'], 81.25)
+        owner = self.request('GET', '/api/progress', token='secret-test')[1]['submissions'][0]
+        self.assertEqual(owner['open_status'], 'reviewed')
+        self.assertEqual(owner['open_score'], 3)
+        self.assertEqual(owner['open_total'], 4)
+        self.assertEqual(owner['overall_percent'], 81.25)
+        self.assertIn('граница', owner['review_feedback'])
+        self.assertEqual(self.request('GET','/api/progress')[0],401)
+        with sqlite3.connect(self.root / 'progress.sqlite') as db:
+            self.assertEqual(db.execute('select answers from submissions where id=?',(saved['id'],)).fetchone()[0],json.dumps({'q1':'1','q2':'Аргумент'},ensure_ascii=False))
+        with self.assertRaisesRegex(ValueError,'reviewed'):
+            save_review(self.root / 'progress.sqlite', self.root / 'lessons', saved['id'], {'q2':(3,4)}, 'Duplicate')
 
     def test_token_required_for_results(self):
         for method, path, body in [('GET', '/api/progress', None), ('POST', '/api/submissions', {'lesson_id': '2026-10-26', 'answers': {}})]:

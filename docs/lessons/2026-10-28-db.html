@@ -43,7 +43,11 @@ async function loadProgress(){
  if(!ownerKey)return;
  try{const response=await fetch('/api/progress',{headers:{Authorization:'Bearer '+ownerKey}});if(!response.ok)throw new Error('Доступ к истории не подтверждён');
  const data=await response.json();$('#history-list').replaceChildren();$('#history-status').textContent=data.submissions.length?`Сохранено попыток: ${data.submissions.length}`:'Пока нет сохранённых попыток.';
- for(const item of data.submissions){const line=make('p',`${item.lesson_id} · ${item.choice_score}/${item.choice_total} за варианты · открытый ответ: ${item.open_status==='pending'?'ожидает проверки':'проверен'}`);$('#history-list').append(line)}
+ for(const item of data.submissions){const graded=item.open_status==='reviewed'&&item.open_score!==null&&item.open_score!==undefined;
+  const status=graded?`открытый ответ: ${item.open_score}/${item.open_total} · итог: ${item.overall_percent}%`:(item.open_status==='pending'?'открытый ответ: ожидает проверки':'открытый ответ: проверен, балл не сохранён');
+  const line=make('p',`${item.lesson_id} · ${item.choice_score}/${item.choice_total} за варианты · ${status}`);$('#history-list').append(line);
+  if(graded&&item.review_feedback)$('#history-list').append(make('p',item.review_feedback,'note'));
+ }
  }catch(e){$('#history-status').textContent=e.message}}
 if(!ownerKey)$('#history-status').textContent='Ключ не найден в этом браузере. Нужна отдельная личная ссылка; если её нет, попроси меня выдать доступ.';else loadProgress();
 $('#date').textContent=lesson.id;$('#track').textContent=lesson.track;$('#title').textContent=lesson.title;$('#objective').textContent=lesson.objective;$('#duration').textContent='На чтение и тест · '+lesson.duration;

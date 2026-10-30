@@ -9,6 +9,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from review import ensure_reviews_table
 
 LESSON_ID = re.compile(r'^\d{4}-\d{2}-\d{2}(?:-db)?$')
 
@@ -19,6 +20,7 @@ def make_server(host: str, port: int, lesson_dir: Path, db_path: Path, token: st
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(db_path)) as db, db:
         db.execute('CREATE TABLE IF NOT EXISTS submissions (id INTEGER PRIMARY KEY, lesson_id TEXT NOT NULL, answers TEXT NOT NULL, choice_score INTEGER NOT NULL, choice_total INTEGER NOT NULL, open_status TEXT NOT NULL, created_at TEXT NOT NULL)')
+        ensure_reviews_table(db)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):
@@ -47,8 +49,12 @@ def make_server(host: str, port: int, lesson_dir: Path, db_path: Path, token: st
             if not self.authorized():
                 return self.respond(401, {'error': 'unauthorized'})
             with closing(sqlite3.connect(db_path)) as db, db:
-                rows = db.execute('SELECT id, lesson_id, answers, choice_score, choice_total, open_status, created_at FROM submissions ORDER BY id DESC LIMIT 200').fetchall()
-            return self.respond(200, {'submissions': [dict(id=r[0], lesson_id=r[1], answers=json.loads(r[2]), choice_score=r[3], choice_total=r[4], open_status=r[5], created_at=r[6]) for r in rows]})
+                rows = db.execute('''SELECT s.id, s.lesson_id, s.answers, s.choice_score, s.choice_total,
+                    s.open_status, s.created_at, r.open_score, r.open_total,
+                    r.overall_percent, r.feedback, r.scores, r.reviewed_at
+                    FROM submissions s LEFT JOIN reviews r ON r.submission_id=s.id
+                    ORDER BY s.id DESC LIMIT 200''').fetchall()
+            return self.respond(200, {'submissions': [dict(id=r[0], lesson_id=r[1], answers=json.loads(r[2]), choice_score=r[3], choice_total=r[4], open_status=r[5], created_at=r[6], open_score=r[7], open_total=r[8], overall_percent=r[9], review_feedback=r[10], open_scores=json.loads(r[11]) if r[11] else None, reviewed_at=r[12]) for r in rows]})
 
         def do_POST(self):
             if self.path != '/api/submissions':
